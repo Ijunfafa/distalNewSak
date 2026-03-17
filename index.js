@@ -2,39 +2,24 @@ require('dotenv').config();
 const express = require('express');
 const cors    = require('cors');
 const fetch   = require('node-fetch');
+const path    = require('path');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
 
-// ── CORS 설정 ──────────────────────────────────────────
-// 허용할 프론트엔드 주소 (로컬 개발 + 배포 주소 모두 허용)
-const ALLOWED_ORIGINS = [
-  'http://localhost:5500',
-  'http://127.0.0.1:5500',
-  'http://localhost:3000',
-  process.env.FRONTEND_URL, // Render/Vercel 배포 시 환경변수로 지정
-].filter(Boolean);
+// ── 정적 파일 서빙 (client 폴더) ───────────────────────
+// https://distalnewsak.onrender.com 으로 접속하면 HTML 자동 제공
+app.use(express.static(path.join(__dirname, 'client')));
 
-app.use(cors({
-  origin: (origin, cb) => {
-    // 개발 편의상 origin 없는 요청(curl 등)도 허용
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-    cb(new Error('CORS: 허용되지 않은 출처 — ' + origin));
-  },
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type'],
-}));
+// ── CORS 설정 ──────────────────────────────────────────
+// 같은 서버에서 HTML을 제공하므로 CORS 전체 허용
+app.use(cors());
 
 app.use(express.json({ limit: '2mb' }));
 
-// ── 헬스체크 ───────────────────────────────────────────
+// ── 루트 접속 시 로그인 페이지 제공 ───────────────────
 app.get('/', (req, res) => {
-  res.json({
-    status: 'ok',
-    service: 'C앗 농장 플랫폼 API',
-    version: '1.0.0',
-    timestamp: new Date().toISOString(),
-  });
+  res.sendFile(path.join(__dirname, 'client', 'login.html'));
 });
 
 // ── Claude API 프록시 ──────────────────────────────────

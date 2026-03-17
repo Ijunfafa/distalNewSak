@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌾 C앗 농장 — 로그인</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0f1a0a; --surface:#1a2614; --surface2:#212d1a;
+    --green-600:#3B6D11; --green-400:#639922; --green-200:#C0DD97; --green-100:#EAF3DE;
+    --amber-600:#BA7517; --amber-400:#EF9F27; --amber-100:#FAEEDA;
+    --teal-400:#1D9E75; --teal-100:#E1F5EE;
+    --border:rgba(99,153,34,.2); --border2:rgba(99,153,34,.35);
+    --text:#e8f0d8; --text-s:#a8b896; --text-xs:#6a7a5a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Gowun Dodum', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  /* 배경 패턴 */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: radial-gradient(circle at 20% 30%, rgba(99,153,34,.06) 0%, transparent 50%),
+                      radial-gradient(circle at 80% 70%, rgba(29,158,117,.05) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  /* 헤더 */
+  .brand {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .brand-icon { font-size: 48px; margin-bottom: 8px; }
+  .brand-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 28px;
+    color: var(--green-400);
+  }
+  .brand-title span { color: var(--amber-400); }
+  .brand-sub {
+    font-size: 13px;
+    color: var(--text-xs);
+    margin-top: 4px;
+  }
+
+  /* 탭 */
+  .tab-wrap {
+    width: 100%;
+    max-width: 400px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .tab-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    padding: 14px;
+    border: none;
+    background: transparent;
+    font-family: 'Gowun Dodum', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-xs);
+    cursor: pointer;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-bottom: 2px solid transparent;
+  }
+  .tab-btn.active {
+    color: var(--green-200);
+    border-bottom-color: var(--green-400);
+    background: rgba(99,153,34,.08);
+  }
+
+  /* 폼 패널 */
+  .panel { display: none; padding: 28px 24px; }
+  .panel.active { display: block; }
+
+  .panel-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .panel-desc {
+    font-size: 12px;
+    color: var(--text-xs);
+    margin-bottom: 22px;
+    line-height: 1.6;
+  }
+
+  /* 씨앗코드 입력 */
+  .seed-input-wrap {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+  .seed-digit {
+    width: 48px;
+    height: 56px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--green-400);
+    text-align: center;
+    font-family: 'Gowun Dodum', monospace;
+    outline: none;
+    transition: border-color .15s, background .15s;
+    caret-color: var(--green-400);
+  }
+  .seed-digit:focus {
+    border-color: var(--green-400);
+    background: rgba(99,153,34,.08);
+  }
+  .seed-digit.filled {
+    border-color: var(--green-600);
+  }
+
+  .name-field {
+    margin-bottom: 14px;
+  }
+  .field-label {
+    font-size: 11px;
+    color: var(--text-xs);
+    margin-bottom: 6px;
+    display: block;
+  }
+  .field-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: 'Gowun Dodum', sans-serif;
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s;
+  }
+  .field-input:focus { border-color: var(--green-400); }
+  .field-input::placeholder { color: var(--text-xs); }
+
+  /* 버튼 */
+  .login-btn {
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: 'Gowun Dodum', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .btn-student {
+    background: var(--green-600);
+    border: 1px solid var(--green-400);
+    color: var(--green-100);
+  }
+  .btn-student:hover { background: var(--green-400); color: #fff; }
+  .btn-student:disabled {
+    background: var(--border);
+    border-color: var(--border);
+    color: var(--text-xs);
+    cursor: not-allowed;
+  }
+  .btn-teacher {
+    background: rgba(186,117,23,.2);
+    border: 1px solid var(--amber-600);
+    color: #FAC775;
+  }
+  .btn-teacher:hover { background: rgba(186,117,23,.35); }
+
+  /* 구분선 */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 16px 0;
+    font-size: 11px;
+    color: var(--text-xs);
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* 에러/안내 메시지 */
+  .msg-box {
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.6;
+    margin-bottom: 14px;
+    display: none;
+  }
+  .msg-box.show { display: block; }
+  .msg-error { background: rgba(226,75,74,.15); border: 1px solid rgba(226,75,74,.4); color: #F09595; }
+  .msg-info  { background: rgba(99,153,34,.12); border: 1px solid var(--border2); color: var(--green-200); }
+
+  /* 강사 준비중 배너 */
+  .coming-soon {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(186,117,23,.1);
+    border: 1px solid rgba(186,117,23,.3);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+  }
+  .cs-icon { font-size: 20px; flex-shrink: 0; }
+  .cs-text { font-size: 12px; color: #FAC775; line-height: 1.6; }
+  .cs-badge {
+    display: inline-block;
+    font-size: 10px;
+    background: rgba(186,117,23,.3);
+    color: #FAC775;
+    padding: 2px 7px;
+    border-radius: 10px;
+    margin-left: 4px;
+  }
+
+  /* 하단 안내 */
+  .footer-note {
+    margin-top: 20px;
+    font-size: 11px;
+    color: var(--text-xs);
+    text-align: center;
+    line-height: 1.7;
+  }
+
+  /* 로딩 스피너 */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+    display: none;
+  }
+
+  /* 성공 화면 */
+  .success-screen {
+    display: none;
+    text-align: center;
+    padding: 32px 24px;
+  }
+  .success-screen.show { display: block; }
+  .success-icon { font-size: 52px; margin-bottom: 12px; }
+  .success-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 20px;
+    color: var(--green-200);
+    margin-bottom: 6px;
+  }
+  .success-desc { font-size: 13px; color: var(--text-s); line-height: 1.7; margin-bottom: 20px; }
+  .enter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--green-600);
+    border: 1px solid var(--green-400);
+    border-radius: 10px;
+    padding: 12px 28px;
+    font-size: 14px;
+    font-family: 'Gowun Dodum', sans-serif;
+    color: var(--green-100);
+    cursor: pointer;
+    text-decoration: none;
+    transition: background .15s;
+  }
+  .enter-btn:hover { background: var(--green-400); color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="brand">
+  <div class="brand-icon">🌾</div>
+  <div class="brand-title">C앗 <span>농장</span></div>
+  <div class="brand-sub">AI와 함께하는 스마트팜 학습 플랫폼</div>
+</div>
+
+<div class="tab-wrap">
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('student')" id="tab-student">
+      🌱 학생 입장
+    </button>
+    <button class="tab-btn" onclick="switchTab('teacher')" id="tab-teacher">
+      🧑‍💼 강사 로그인
+    </button>
+  </div>
+
+  <!-- 학생 패널 -->
+  <div class="panel active" id="panel-student">
+
+    <div class="panel-title">씨앗코드로 입장하기</div>
+    <div class="panel-desc">강사 선생님이 알려준 6자리 씨앗코드를 입력하세요.</div>
+
+    <div class="msg-box msg-error" id="student-error"></div>
+    <div class="msg-box msg-info" id="student-info"></div>
+
+    <div class="seed-input-wrap" id="seed-inputs">
+      <input class="seed-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" id="s0" oninput="onSeedInput(0)" onkeydown="onSeedKey(event,0)">
+      <input class="seed-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" id="s1" oninput="onSeedInput(1)" onkeydown="onSeedKey(event,1)">
+      <input class="seed-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" id="s2" oninput="onSeedInput(2)" onkeydown="onSeedKey(event,2)">
+      <input class="seed-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" id="s3" oninput="onSeedInput(3)" onkeydown="onSeedKey(event,3)">
+      <input class="seed-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" id="s4" oninput="onSeedInput(4)" onkeydown="onSeedKey(event,4)">
+      <input class="seed-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" id="s5" oninput="onSeedInput(5)" onkeydown="onSeedKey(event,5)">
+    </div>
+
+    <div class="name-field">
+      <label class="field-label" for="student-name">이름</label>
+      <input class="field-input" id="student-name" type="text" placeholder="홍길동" maxlength="20" oninput="checkStudentForm()">
+    </div>
+
+    <div class="name-field">
+      <label class="field-label" for="student-school">학교</label>
+      <input class="field-input" id="student-school" type="text" placeholder="○○중학교" maxlength="30" oninput="checkStudentForm()">
+    </div>
+
+    <button class="login-btn btn-student" id="student-submit" disabled onclick="submitStudent()">
+      <span class="spinner" id="student-spinner"></span>
+      <span id="student-btn-text">씨앗코드 입력 후 입장 가능</span>
+    </button>
+
+  </div>
+
+  <!-- 학생 성공 화면 -->
+  <div class="success-screen" id="student-success">
+    <div class="success-icon">🌱</div>
+    <div class="success-title" id="success-name">홍길동님, 환영해요!</div>
+    <div class="success-desc">씨앗코드가 확인됐어요.<br>스마트 밭 학습을 시작해봐요!</div>
+    <a class="enter-btn" href="caat_smart_farm.html" id="enter-link">
+      학습 시작하기 🌾
+    </a>
+  </div>
+
+  <!-- 강사 패널 -->
+  <div class="panel" id="panel-teacher">
+
+    <div class="coming-soon">
+      <div class="cs-icon">🚧</div>
+      <div class="cs-text">
+        강사 전용 로그인은 현재 준비 중이에요.
+        <span class="cs-badge">Coming Soon</span><br>
+        현재는 씨앗코드 발급 기능을 개발 중입니다.
+      </div>
+    </div>
+
+    <div class="panel-title">강사 로그인</div>
+    <div class="panel-desc">등록된 이메일과 비밀번호로 로그인하세요.</div>
+
+    <div class="name-field">
+      <label class="field-label" for="teacher-email">이메일</label>
+      <input class="field-input" id="teacher-email" type="email" placeholder="teacher@nha.ac.kr" disabled>
+    </div>
+
+    <div class="name-field">
+      <label class="field-label" for="teacher-pw">비밀번호</label>
+      <input class="field-input" id="teacher-pw" type="password" placeholder="••••••••" disabled>
+    </div>
+
+    <button class="login-btn btn-teacher" disabled style="opacity:.5;cursor:not-allowed;">
+      🔒 준비 중입니다
+    </button>
+
+    <div class="divider">또는</div>
+
+    <button class="login-btn btn-student" onclick="switchTab('student')" style="background:transparent;border-color:var(--border2);color:var(--text-s);">
+      🌱 학생으로 입장하기
+    </button>
+
+  </div>
+
+</div>
+
+<div class="footer-note">
+  C앗 농장 플랫폼 · 농협대학교 × 브레인스파크<br>
+  문의: 강사 선생님 또는 운영팀에 연락해주세요
+</div>
+
+<script>
+// ── 탭 전환 ──────────────────────────────────────────
+function switchTab(tab) {
+  ['student','teacher'].forEach(t => {
+    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+    document.getElementById('panel-'+t).classList.toggle('active', t===tab);
+  });
+  document.getElementById('student-success').classList.remove('show');
+}
+
+// ── 씨앗코드 입력 ────────────────────────────────────
+function onSeedInput(idx) {
+  const el = document.getElementById('s'+idx);
+  // 숫자만 허용
+  el.value = el.value.replace(/[^0-9]/g,'');
+  el.classList.toggle('filled', el.value !== '');
+  // 다음 칸으로 자동 이동
+  if (el.value && idx < 5) document.getElementById('s'+(idx+1)).focus();
+  checkStudentForm();
+}
+
+function onSeedKey(e, idx) {
+  // 백스페이스 시 이전 칸으로
+  if (e.key === 'Backspace' && !document.getElementById('s'+idx).value && idx > 0) {
+    document.getElementById('s'+(idx-1)).focus();
+  }
+}
+
+function getSeedCode() {
+  return [0,1,2,3,4,5].map(i => document.getElementById('s'+i).value).join('');
+}
+
+// ── 폼 유효성 ─────────────────────────────────────────
+function checkStudentForm() {
+  const code  = getSeedCode();
+  const name  = document.getElementById('student-name').value.trim();
+  const btn   = document.getElementById('student-submit');
+  const btnTxt = document.getElementById('student-btn-text');
+
+  if (code.length === 6 && name) {
+    btn.disabled = false;
+    btnTxt.textContent = '입장하기 🌱';
+  } else if (code.length < 6) {
+    btn.disabled = true;
+    btnTxt.textContent = '씨앗코드 6자리를 입력해주세요';
+  } else {
+    btn.disabled = true;
+    btnTxt.textContent = '이름을 입력해주세요';
+  }
+}
+
+// ── 학생 로그인 제출 ──────────────────────────────────
+async function submitStudent() {
+  const code   = getSeedCode();
+  const name   = document.getElementById('student-name').value.trim();
+  const school = document.getElementById('student-school').value.trim();
+  const btn    = document.getElementById('student-submit');
+  const spinner = document.getElementById('student-spinner');
+  const btnTxt  = document.getElementById('student-btn-text');
+  const errBox  = document.getElementById('student-error');
+
+  // 로딩 상태
+  btn.disabled = true;
+  spinner.style.display = 'block';
+  btnTxt.textContent = '확인 중...';
+  errBox.classList.remove('show');
+
+  // TODO: 실제 서버 API 연결 시 아래 주석 해제
+  // try {
+  //   const res = await fetch('/api/auth/seed', {
+  //     method: 'POST',
+  //     headers: { 'Content-Type': 'application/json' },
+  //     body: JSON.stringify({ code, name, school })
+  //   });
+  //   const data = await res.json();
+  //   if (!res.ok) throw new Error(data.error);
+  //   sessionStorage.setItem('caat_student', JSON.stringify({ name, school, code }));
+  //   showSuccess(name);
+  // } catch(e) {
+  //   showError(e.message);
+  // }
+
+  // 현재는 UI 데모 — 아무 6자리나 허용
+  await new Promise(r => setTimeout(r, 800)); // 로딩 효과
+  sessionStorage.setItem('caat_student', JSON.stringify({ name, school, code }));
+  showSuccess(name);
+}
+
+function showSuccess(name) {
+  document.getElementById('panel-student').style.display = 'none';
+  document.getElementById('student-success').classList.add('show');
+  document.getElementById('success-name').textContent = name + '님, 환영해요!';
+  document.getElementById('student-spinner').style.display = 'none';
+}
+
+function showError(msg) {
+  const btn    = document.getElementById('student-submit');
+  const spinner = document.getElementById('student-spinner');
+  const btnTxt  = document.getElementById('student-btn-text');
+  const errBox  = document.getElementById('student-error');
+  spinner.style.display = 'none';
+  btn.disabled = false;
+  btnTxt.textContent = '다시 시도하기';
+  errBox.textContent = '❌ ' + msg;
+  errBox.classList.add('show');
+}
+
+// 첫 번째 입력칸 포커스
+document.getElementById('s0').focus();
+</script>
+</body>
+</html>
