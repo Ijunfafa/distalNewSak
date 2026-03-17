@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌾 C앗 스마트 밭 — 센서 데이터 사이언티스트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Nanum+Gothic+Coding&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green-900:#173404;--green-800:#27500A;--green-600:#3B6D11;
+    --green-400:#639922;--green-200:#C0DD97;--green-100:#EAF3DE;
+    --amber-600:#BA7517;--amber-400:#EF9F27;--amber-100:#FAEEDA;
+    --teal-600:#0F6E56;--teal-400:#1D9E75;--teal-100:#E1F5EE;
+    --blue-600:#185FA5;--blue-400:#378ADD;
+    --coral-400:#D85A30;
+    --bg:#0f1a0a;--surface:#1a2614;--surface2:#212d1a;
+    --border:rgba(99,153,34,.2);--border2:rgba(99,153,34,.35);
+    --text:#e8f0d8;--text-s:#a8b896;--text-xs:#6a7a5a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Gowun Dodum',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+  /* 헤더 */
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:16px;height:56px;position:sticky;top:0;z-index:100;}
+  .logo{font-family:'Black Han Sans',sans-serif;font-size:18px;color:var(--green-400);}
+  .logo span{color:var(--amber-400);}
+  .program-badge{background:var(--green-800);border:1px solid var(--green-600);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--green-200);}
+  .header-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+  .server-status{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-xs);}
+  .ss-dot{width:7px;height:7px;border-radius:50%;background:#555;transition:background .3s;}
+  .ss-dot.online{background:#4caf50;animation:pulse 2s infinite;}
+  .ss-dot.error{background:#E24B4A;}
+  .sdg-badge{font-size:11px;padding:3px 9px;border-radius:20px;background:rgba(55,138,221,.15);border:1px solid rgba(55,138,221,.3);color:#85B7EB;}
+  .phase-indicator{display:flex;gap:4px;}
+  .pi-dot{width:8px;height:8px;border-radius:50%;background:var(--border2);transition:background .3s;}
+  .pi-dot.active{background:var(--green-400);}
+  .pi-dot.done{background:var(--teal-400);}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+  /* 레이아웃 */
+  .app{display:grid;grid-template-columns:280px 1fr 320px;height:calc(100vh - 56px);}
+
+  /* 사이드바 */
+  .sidebar{background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:16px 0;}
+  .sidebar::-webkit-scrollbar{width:4px;}
+  .sidebar::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+  .progress-bar-wrap{padding:0 16px 12px;}
+  .pb-top{display:flex;justify-content:space-between;font-size:10px;color:var(--text-xs);margin-bottom:4px;}
+  .pb-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+  .pb-fill{height:100%;background:var(--green-400);border-radius:2px;transition:width .5s ease;}
+  .stage-label{font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--text-xs);padding:8px 16px 4px;text-transform:uppercase;}
+  .lesson-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;transition:background .15s;border-left:2px solid transparent;}
+  .lesson-item:hover{background:rgba(99,153,34,.08);}
+  .lesson-item.active{background:rgba(99,153,34,.15);border-left-color:var(--green-400);}
+  .lesson-item.locked{opacity:.4;cursor:not-allowed;}
+  .lesson-item.completed .li-status{color:var(--teal-400);}
+  .li-num{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;background:var(--surface2);border:1px solid var(--border);color:var(--text-s);}
+  .lesson-item.active .li-num{background:var(--green-600);border-color:var(--green-400);color:#fff;}
+  .lesson-item.completed .li-num{background:var(--teal-600);border-color:var(--teal-400);color:#fff;}
+  .li-text{flex:1;}
+  .li-title{font-size:12px;color:var(--text);line-height:1.4;}
+  .li-sub{font-size:10px;color:var(--text-xs);margin-top:1px;}
+  .li-status{font-size:12px;}
+
+  /* 메인 */
+  .main{overflow-y:auto;}
+  .main::-webkit-scrollbar{width:4px;}
+  .main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+  .lesson-view{display:none;padding:28px 32px;max-width:760px;animation:fadeIn .3s ease;}
+  .lesson-view.active{display:block;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+  .lesson-header{margin-bottom:24px;}
+  .lh-stage{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:4px 12px;border-radius:20px;margin-bottom:10px;}
+  .stage-plow{background:rgba(99,153,34,.2);color:var(--green-200);border:1px solid var(--green-600);}
+  .stage-grow{background:rgba(29,158,117,.2);color:#9FE1CB;border:1px solid var(--teal-400);}
+  .lh-title{font-family:'Black Han Sans',sans-serif;font-size:26px;color:var(--text);line-height:1.3;margin-bottom:6px;}
+  .lh-desc{font-size:14px;color:var(--text-s);line-height:1.7;}
+  .lh-meta{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;}
+  .lh-chip{font-size:11px;padding:3px 10px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);color:var(--text-s);}
+
+  /* 콘텐츠 블록 */
+  .content-block{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;}
+  .cb-header{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+  .cb-icon{font-size:16px;}
+  .cb-title{font-size:14px;font-weight:600;color:var(--green-200);}
+  .cb-body{font-size:13px;color:var(--text-s);line-height:1.8;}
+  .cb-body p{margin-bottom:10px;}
+  .cb-body p:last-child{margin-bottom:0;}
+  .sdg-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .sdg-tag{font-size:11px;padding:4px 10px;border-radius:6px;font-weight:600;}
+  .sdg-2{background:rgba(221,167,7,.2);color:#FFD700;border:1px solid rgba(221,167,7,.4);}
+  .sdg-9{background:rgba(253,105,37,.2);color:#FFA07A;border:1px solid rgba(253,105,37,.4);}
+
+  /* 센서 카드 */
+  .sensor-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:14px 0;}
+  .sensor-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;}
+  .sc-label{font-size:11px;color:var(--text-xs);margin-bottom:6px;}
+  .sc-value{font-size:26px;font-family:'Nanum Gothic Coding',monospace;color:var(--green-400);font-weight:700;}
+  .sc-unit{font-size:13px;color:var(--text-s);margin-left:3px;}
+  .sc-bar{height:4px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden;}
+  .sc-fill{height:100%;border-radius:2px;transition:width 1s ease;}
+
+  /* 코드 블록 */
+  .code-block{background:#0d1a08;border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'Nanum Gothic Coding',monospace;font-size:13px;color:#a8d08d;overflow-x:auto;margin:12px 0;line-height:1.7;}
+  .code-block .kw{color:#569cd6;}.code-block .fn{color:#dcdcaa;}.code-block .str{color:#ce9178;}.code-block .cm{color:#6a9955;}.code-block .num{color:#b5cea8;}
+
+  /* 미션 */
+  .mission-block{border:1px solid var(--amber-600);border-radius:12px;overflow:hidden;margin-bottom:16px;}
+  .mb-head{background:rgba(186,117,23,.2);padding:12px 16px;display:flex;align-items:center;gap:8px;}
+  .mb-head-title{font-size:13px;font-weight:600;color:#FAC775;}
+  .mb-body{padding:16px;}
+  .mb-task{font-size:13px;color:var(--text);line-height:1.7;margin-bottom:10px;}
+  .vibe-prompt{background:#0d1a08;border:1px solid rgba(239,159,39,.3);border-radius:8px;padding:14px;font-family:'Nanum Gothic Coding',monospace;font-size:12px;color:#FAC775;line-height:1.7;margin:10px 0;}
+  .vibe-label{font-size:10px;color:var(--text-xs);margin-bottom:6px;letter-spacing:.05em;}
+
+  /* 버튼 */
+  .complete-btn{display:inline-flex;align-items:center;gap:8px;background:var(--green-600);border:1px solid var(--green-400);border-radius:8px;padding:10px 20px;font-size:13px;font-family:'Gowun Dodum',sans-serif;color:var(--green-100);cursor:pointer;transition:all .15s;margin-top:8px;}
+  .complete-btn:hover{background:var(--green-400);color:#fff;}
+  .complete-btn.done{background:var(--teal-600);border-color:var(--teal-400);cursor:default;}
+
+  /* 퀴즈 */
+  .quiz-q{font-size:14px;color:var(--text);line-height:1.7;margin-bottom:12px;}
+  .quiz-options{display:flex;flex-direction:column;gap:7px;}
+  .quiz-opt{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;color:var(--text-s);transition:all .15s;background:var(--surface2);}
+  .quiz-opt:hover{border-color:var(--green-600);color:var(--text);background:rgba(99,153,34,.1);}
+  .quiz-opt.correct{border-color:var(--teal-400);background:rgba(29,158,117,.15);color:#9FE1CB;}
+  .quiz-opt.wrong{border-color:var(--coral-400);background:rgba(216,90,48,.15);color:#F0997B;}
+  .quiz-opt-letter{width:22px;height:22px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;}
+  .quiz-feedback{margin-top:10px;padding:12px 14px;border-radius:8px;font-size:13px;line-height:1.6;display:none;}
+  .quiz-feedback.correct{background:rgba(29,158,117,.15);border:1px solid var(--teal-400);color:#9FE1CB;display:block;}
+  .quiz-feedback.wrong{background:rgba(216,90,48,.15);border:1px solid var(--coral-400);color:#F0997B;display:block;}
+
+  /* AI 튜터 패널 */
+  .tutor-panel{background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;height:100%;}
+  .tp-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;}
+  .tp-avatar{width:36px;height:36px;border-radius:50%;background:var(--green-800);border:1px solid var(--green-600);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+  .tp-info{flex:1;}
+  .tp-name{font-size:13px;font-weight:600;color:var(--green-200);}
+  .tp-status{font-size:11px;color:var(--text-xs);margin-top:1px;}
+  .tp-status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#4caf50;margin-right:4px;animation:pulse 2s infinite;}
+  .hint-level{display:flex;gap:3px;align-items:center;padding:8px 16px;flex-shrink:0;}
+  .hl-label{font-size:10px;color:var(--text-xs);margin-right:4px;}
+  .hl-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:background .3s;}
+  .hl-dot.h1{background:var(--green-400);}
+  .hl-dot.h2{background:var(--teal-400);}
+  .hl-dot.h3{background:var(--amber-400);}
+  .hl-dot.h4{background:var(--coral-400);}
+  .hl-dot.h5{background:#E24B4A;}
+  .tp-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;}
+  .tp-messages::-webkit-scrollbar{width:3px;}
+  .tp-messages::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+  .msg{display:flex;gap:8px;align-items:flex-start;animation:fadeIn .2s ease;}
+  .msg.user{flex-direction:row-reverse;}
+  .msg-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+  .bot-av{background:var(--green-800);border:1px solid var(--green-600);}
+  .user-av{background:var(--surface2);border:1px solid var(--border);}
+  .msg-bubble{padding:9px 12px;border-radius:10px;font-size:12px;line-height:1.6;max-width:86%;}
+  .msg.bot .msg-bubble{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:3px 10px 10px 10px;}
+  .msg.user .msg-bubble{background:var(--green-800);border:1px solid var(--green-600);color:var(--green-100);border-radius:10px 3px 10px 10px;}
+  .hint-badge{display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;margin-bottom:5px;}
+  .hb-1{background:rgba(99,153,34,.3);color:var(--green-200);}
+  .hb-2{background:rgba(29,158,117,.3);color:#9FE1CB;}
+  .hb-3{background:rgba(239,159,39,.3);color:#FAC775;}
+  .hb-4{background:rgba(216,90,48,.3);color:#F0997B;}
+  .hb-5{background:rgba(226,75,74,.3);color:#F09595;}
+  .quick-chips{display:flex;flex-wrap:wrap;gap:5px;padding:0 12px 8px;flex-shrink:0;}
+  .qc{font-size:11px;padding:4px 10px;border:1px solid var(--border2);border-radius:16px;color:var(--text-s);cursor:pointer;background:var(--surface2);transition:all .15s;white-space:nowrap;}
+  .qc:hover{border-color:var(--green-400);color:var(--green-200);background:rgba(99,153,34,.1);}
+  .tp-input-area{padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;}
+  .tp-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:8px 14px;font-size:12px;font-family:'Gowun Dodum',sans-serif;color:var(--text);outline:none;transition:border-color .15s;}
+  .tp-input:focus{border-color:var(--green-400);}
+  .tp-input::placeholder{color:var(--text-xs);}
+  .tp-send{width:34px;height:34px;border-radius:50%;background:var(--green-600);border:1px solid var(--green-400);color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;}
+  .tp-send:hover{background:var(--green-400);}
+  .tp-send:disabled{background:var(--border);border-color:var(--border);cursor:not-allowed;}
+  .typing{display:flex;gap:3px;align-items:center;padding:6px 2px;}
+  .typing span{width:5px;height:5px;border-radius:50%;background:var(--green-400);animation:bounce 1s infinite;}
+  .typing span:nth-child(2){animation-delay:.15s;}
+  .typing span:nth-child(3){animation-delay:.3s;}
+  @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+
+  /* 배지 모달 */
+  .badge-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;}
+  .badge-overlay.show{display:flex;}
+  .badge-modal{background:var(--surface);border:1px solid var(--green-600);border-radius:20px;padding:32px;text-align:center;max-width:320px;animation:popIn .4s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes popIn{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+  .badge-icon{font-size:64px;margin-bottom:12px;}
+  .badge-title{font-family:'Black Han Sans',sans-serif;font-size:20px;color:var(--green-200);margin-bottom:8px;}
+  .badge-desc{font-size:13px;color:var(--text-s);line-height:1.6;margin-bottom:20px;}
+  .badge-close{background:var(--green-600);border:none;border-radius:8px;padding:10px 24px;font-size:13px;font-family:'Gowun Dodum',sans-serif;color:#fff;cursor:pointer;}
+
+  /* 에러 토스트 */
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#2a0f0f;border:1px solid var(--coral-400);border-radius:8px;padding:10px 18px;font-size:12px;color:#F0997B;z-index:300;display:none;animation:fadeIn .2s ease;}
+  .toast.show{display:block;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">C앗 <span>농장</span></div>
+  <div class="program-badge">⑦ 스마트 밭 — 센서 데이터 사이언티스트</div>
+  <div class="header-right">
+    <div class="server-status">
+      <div class="ss-dot" id="ss-dot"></div>
+      <span id="ss-label">서버 확인 중...</span>
+    </div>
+    <div class="sdg-badge">SDG 2 · 9</div>
+    <div class="phase-indicator" id="phase-dots">
+      <span class="pi-dot active"></span>
+      <span class="pi-dot"></span>
+      <span class="pi-dot"></span>
+      <span class="pi-dot"></span>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- 사이드바 -->
+  <div class="sidebar">
+    <div class="progress-bar-wrap">
+      <div class="pb-top"><span>전체 진도</span><span id="prog-text">0 / 12 차시</span></div>
+      <div class="pb-bar"><div class="pb-fill" id="prog-fill" style="width:0%"></div></div>
+    </div>
+    <div class="stage-label">🚜 밭갈기 (1~3차시)</div>
+    <div class="lesson-item active" onclick="openLesson(0)" id="li-0">
+      <div class="li-num">1</div><div class="li-text"><div class="li-title">스마트팜이란?</div><div class="li-sub">SDGs + 센서 개요</div></div><div class="li-status">📖</div>
+    </div>
+    <div class="lesson-item" onclick="openLesson(1)" id="li-1">
+      <div class="li-num">2</div><div class="li-text"><div class="li-title">ESP32 첫 연결</div><div class="li-sub">하드웨어 셋업</div></div><div class="li-status">🔒</div>
+    </div>
+    <div class="lesson-item" onclick="openLesson(2)" id="li-2">
+      <div class="li-num">3</div><div class="li-text"><div class="li-title">센서 데이터 읽기</div><div class="li-sub">온습도·토양수분</div></div><div class="li-status">🔒</div>
+    </div>
+    <div class="stage-label">🌱 씨뿌리기 (4~6차시)</div>
+    <div class="lesson-item locked" id="li-3"><div class="li-num">4</div><div class="li-text"><div class="li-title">데이터 시각화</div><div class="li-sub">Blynk 대시보드</div></div><div class="li-status">🔒</div></div>
+    <div class="lesson-item locked" id="li-4"><div class="li-num">5</div><div class="li-text"><div class="li-title">자동급수 로직</div><div class="li-sub">조건문 + 릴레이</div></div><div class="li-status">🔒</div></div>
+    <div class="lesson-item locked" id="li-5"><div class="li-num">6</div><div class="li-text"><div class="li-title">WiFi IoT 연동</div><div class="li-sub">클라우드 전송</div></div><div class="li-status">🔒</div></div>
+    <div class="stage-label">🌿 가꾸기 (7~9차시)</div>
+    <div class="lesson-item locked" id="li-6"><div class="li-num">7</div><div class="li-text"><div class="li-title">바이브코딩 입문</div><div class="li-sub">AI에게 코드 부탁</div></div><div class="li-status">🔒</div></div>
+    <div class="lesson-item locked" id="li-7"><div class="li-num">8</div><div class="li-text"><div class="li-title">농협대 데이터 비교</div><div class="li-sub">실제 vs 내 데이터</div></div><div class="li-status">🔒</div></div>
+    <div class="lesson-item locked" id="li-8"><div class="li-num">9</div><div class="li-text"><div class="li-title">AI 개선 반복</div><div class="li-sub">문제 찾고 고치기</div></div><div class="li-status">🔒</div></div>
+    <div class="stage-label">🌾 수확하기 (10~12차시)</div>
+    <div class="lesson-item locked" id="li-9"><div class="li-num">10</div><div class="li-text"><div class="li-title">솔루션 설계</div><div class="li-sub">최종 시스템</div></div><div class="li-status">🔒</div></div>
+    <div class="lesson-item locked" id="li-10"><div class="li-num">11</div><div class="li-text"><div class="li-title">발표 자료 제작</div><div class="li-sub">데이터 스토리텔링</div></div><div class="li-status">🔒</div></div>
+    <div class="lesson-item locked" id="li-11"><div class="li-num">12</div><div class="li-text"><div class="li-title">최종 발표 & 배지</div><div class="li-sub">C앗 사이언티스트</div></div><div class="li-status">🔒</div></div>
+  </div>
+
+  <!-- 메인 콘텐츠 -->
+  <div class="main">
+
+    <!-- 1차시 -->
+    <div class="lesson-view active" id="lesson-0">
+      <div class="lesson-header">
+        <div class="lh-stage stage-plow">🚜 밭갈기 · 1차시</div>
+        <div class="lh-title">스마트팜이란 무엇일까?</div>
+        <div class="lh-desc">데이터로 농사를 짓는 시대 — 센서, AI, 인터넷이 만나는 곳을 탐험해봐요.</div>
+        <div class="lh-meta"><span class="lh-chip">⏱ 45분</span><span class="lh-chip">🎯 디지털 리터러시</span><span class="lh-chip">📌 ESP32 키트</span></div>
+      </div>
+      <div class="content-block">
+        <div class="cb-header"><span class="cb-icon">🌍</span><span class="cb-title">왜 스마트팜이 필요할까?</span></div>
+        <div class="cb-body">
+          <p>지구 온난화로 농작물 재배 조건이 달라지고 있어요. 기온이 1°C 오를 때마다 벼 수확량이 약 6% 줄어든다는 연구 결과가 있습니다.</p>
+          <p>스마트팜은 센서로 흙의 수분·온도·빛을 실시간 측정하고, 그 데이터로 물 주기·온도를 자동화해요. 낭비는 줄이고, 수확량은 늘리는 거죠.</p>
+        </div>
+        <div class="sdg-row"><span class="sdg-tag sdg-2">SDG 2 기아 종식</span><span class="sdg-tag sdg-9">SDG 9 산업·혁신</span></div>
+      </div>
+      <div class="content-block">
+        <div class="cb-header"><span class="cb-icon">📡</span><span class="cb-title">농협대학교 실제 스마트팜 데이터 (실시간)</span></div>
+        <div class="cb-body"><p>지금 농협대 온실에서 수집 중인 센서 데이터예요. 나중에 여러분 데이터와 비교해볼 거예요!</p></div>
+        <div class="sensor-grid">
+          <div class="sensor-card"><div class="sc-label">🌡️ 기온</div><div class="sc-value" id="s-temp">--<span class="sc-unit">°C</span></div><div class="sc-bar"><div class="sc-fill" id="sb-temp" style="width:0%;background:#EF9F27"></div></div></div>
+          <div class="sensor-card"><div class="sc-label">💧 습도</div><div class="sc-value" id="s-hum">--<span class="sc-unit">%</span></div><div class="sc-bar"><div class="sc-fill" id="sb-hum" style="width:0%;background:#378ADD"></div></div></div>
+          <div class="sensor-card"><div class="sc-label">🌱 토양수분</div><div class="sc-value" id="s-soil">--<span class="sc-unit">%</span></div><div class="sc-bar"><div class="sc-fill" id="sb-soil" style="width:0%;background:#1D9E75"></div></div></div>
+          <div class="sensor-card"><div class="sc-label">☀️ 조도</div><div class="sc-value" id="s-light">--<span class="sc-unit">lux</span></div><div class="sc-bar"><div class="sc-fill" id="sb-light" style="width:0%;background:#FAC775"></div></div></div>
+        </div>
+      </div>
+      <div class="content-block">
+        <div class="cb-header"><span class="cb-icon">🧠</span><span class="cb-title">오늘 배울 핵심 개념</span></div>
+        <div class="cb-body">
+          <p><strong style="color:var(--green-200)">센서(Sensor)</strong> — 온도·빛 같은 물리 신호를 전기 신호로 바꾸는 장치예요.</p>
+          <p><strong style="color:var(--green-200)">마이크로컨트롤러(MCU)</strong> — 센서 신호를 처리하는 초소형 컴퓨터. 우리가 쓸 ESP32가 바로 MCU예요.</p>
+          <p><strong style="color:var(--green-200)">IoT(사물인터넷)</strong> — 센서 데이터를 인터넷으로 전송해 어디서든 확인하고 제어할 수 있어요.</p>
+        </div>
+      </div>
+      <div class="mission-block">
+        <div class="mb-head"><span>🎯</span><span class="mb-head-title">1차시 탐구 미션</span></div>
+        <div class="mb-body">
+          <div class="mb-task">우리 주변 어떤 것들을 스마트팜 센서로 측정할 수 있을지 아이디어를 적어보세요!</div>
+          <textarea id="mission-0" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;font-family:'Gowun Dodum',sans-serif;color:var(--text);resize:vertical;min-height:80px;outline:none;" placeholder="예: 학교 화단 흙이 마르면 자동으로 물을 주는 시스템을 만들고 싶어요..."></textarea>
+          <button class="complete-btn" onclick="completeLesson(0)" id="btn-0">✅ 1차시 완료 — 2차시 열기</button>
+        </div>
+      </div>
+      <div class="content-block">
+        <div class="cb-header"><span class="cb-icon">🌱</span><span class="cb-title">개념 확인 퀴즈</span></div>
+        <div class="quiz-q">토양수분 센서가 "흙이 너무 건조하다"는 신호를 보냈을 때, 스마트팜이 자동으로 취해야 할 행동은?</div>
+        <div class="quiz-options" id="quiz-0">
+          <div class="quiz-opt" onclick="checkQuiz(this,'quiz-0',false)"><div class="quiz-opt-letter">A</div>온실 온도 높이기</div>
+          <div class="quiz-opt" onclick="checkQuiz(this,'quiz-0',true)"><div class="quiz-opt-letter">B</div>수분 펌프 작동시켜 물 주기</div>
+          <div class="quiz-opt" onclick="checkQuiz(this,'quiz-0',false)"><div class="quiz-opt-letter">C</div>조명 끄기</div>
+          <div class="quiz-opt" onclick="checkQuiz(this,'quiz-0',false)"><div class="quiz-opt-letter">D</div>데이터 삭제하기</div>
+        </div>
+        <div class="quiz-feedback" id="qf-quiz-0"></div>
+      </div>
+    </div>
+
+    <!-- 2차시 -->
+    <div class="lesson-view" id="lesson-1">
+      <div class="lesson-header">
+        <div class="lh-stage stage-plow">🚜 밭갈기 · 2차시</div>
+        <div class="lh-title">ESP32 첫 연결 — 내 스마트팜 시작</div>
+        <div class="lh-desc">하드웨어를 PC에 연결하고 첫 번째 코드를 업로드해봐요!</div>
+        <div class="lh-meta"><span class="lh-chip">⏱ 45분</span><span class="lh-chip">🎯 컴퓨팅 사고력</span></div>
+      </div>
+      <div class="content-block">
+        <div class="cb-header"><span class="cb-icon">🔌</span><span class="cb-title">ESP32 셋업 순서</span></div>
+        <div class="cb-body">
+          <p>① ESP32를 USB 케이블로 PC에 연결하세요.</p>
+          <p>② Arduino IDE → 보드: <strong style="color:var(--green-200)">ESP32 Dev Module</strong> 선택</p>
+          <p>③ 포트(COM 또는 /dev/tty...) 선택</p>
+          <p>④ 아래 코드를 붙여넣고 업로드 버튼(→)을 누르세요!</p>
+        </div>
+      </div>
+      <div class="content-block">
+        <div class="cb-header"><span class="cb-icon">💻</span><span class="cb-title">첫 번째 코드 — LED 깜빡이기</span></div>
+        <div class="code-block"><span class="cm">// ESP32 내장 LED 깜빡이기 (핀 2번)</span>
+<span class="kw">void</span> <span class="fn">setup</span>() {
+  pinMode(<span class="num">2</span>, OUTPUT);
+  Serial.begin(<span class="num">115200</span>);
+  Serial.println(<span class="str">"스마트팜 시작!"</span>);
+}
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  digitalWrite(<span class="num">2</span>, HIGH); delay(<span class="num">1000</span>);
+  digitalWrite(<span class="num">2</span>, LOW);  delay(<span class="num">1000</span>);
+}</div>
+      </div>
+      <div class="mission-block">
+        <div class="mb-head"><span>🎯</span><span class="mb-head-title">2차시 미션 — delay 값 바꿔보기</span></div>
+        <div class="mb-body">
+          <div class="mb-task">delay 값을 바꿔서 LED 깜빡임 속도를 바꿔봐요. 변화를 오른쪽 튜터에게 설명해보세요!</div>
+          <button class="complete-btn" onclick="completeLesson(1)" id="btn-1">✅ 2차시 완료 — 3차시 열기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3차시 -->
+    <div class="lesson-view" id="lesson-2">
+      <div class="lesson-header">
+        <div class="lh-stage stage-plow">🚜 밭갈기 · 3차시</div>
+        <div class="lh-title">센서 데이터 읽기 — 온습도 + 토양수분</div>
+        <div class="lh-desc">DHT22 센서와 토양수분 센서를 연결하고 데이터를 시리얼 모니터에 출력해봐요.</div>
+        <div class="lh-meta"><span class="lh-chip">⏱ 45분</span><span class="lh-chip">🎯 데이터 소양</span></div>
+      </div>
+      <div class="content-block">
+        <div class="cb-header"><span class="cb-icon">💻</span><span class="cb-title">온습도 + 토양수분 센서 코드</span></div>
+        <div class="code-block"><span class="cm">// DHT22 + 토양수분 센서 동시 읽기</span>
+#include &lt;<span class="fn">DHT</span>.h&gt;
+<span class="kw">#define</span> DHTPIN <span class="num">4</span>
+<span class="kw">#define</span> DHTTYPE DHT22
+<span class="kw">#define</span> SOIL_PIN <span class="num">34</span>
+DHT dht(DHTPIN, DHTTYPE);
+
+<span class="kw">void</span> <span class="fn">setup</span>() {
+  Serial.begin(<span class="num">115200</span>);
+  dht.begin();
+}
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  <span class="kw">float</span> temp = dht.<span class="fn">readTemperature</span>();
+  <span class="kw">float</span> hum  = dht.<span class="fn">readHumidity</span>();
+  <span class="kw">int</span>   soil = analogRead(SOIL_PIN);
+  Serial.<span class="fn">printf</span>(<span class="str">"온도:%.1f°C 습도:%.0f%% 토양:%d\n"</span>, temp, hum, soil);
+  delay(<span class="num">2000</span>);
+}</div>
+      </div>
+      <div class="mission-block">
+        <div class="mb-head"><span>🎯</span><span class="mb-head-title">3차시 미션 — 내 교실 vs 농협대 데이터 비교</span></div>
+        <div class="mb-body">
+          <div class="mb-task">센서 값을 위 농협대 실시간 데이터와 비교해봐요. 왜 차이가 날까요? 튜터에게 물어보세요!</div>
+          <button class="complete-btn" onclick="completeLesson(2)" id="btn-2">✅ 3차시 완료 — 씨뿌리기 단계 열기 🌱</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7차시 -->
+    <div class="lesson-view" id="lesson-6">
+      <div class="lesson-header">
+        <div class="lh-stage stage-grow">🌿 가꾸기 · 7차시</div>
+        <div class="lh-title">바이브코딩 — AI에게 코드를 부탁해봐요!</div>
+        <div class="lh-desc">자연어로 AI에게 원하는 코드를 요청하는 "바이브코딩" 기술을 배워봐요.</div>
+        <div class="lh-meta"><span class="lh-chip">⏱ 45분</span><span class="lh-chip">🎯 AI 소양</span><span class="lh-chip">✨ 핵심 차별화</span></div>
+      </div>
+      <div class="content-block">
+        <div class="cb-header"><span class="cb-icon">🤖</span><span class="cb-title">바이브코딩이란?</span></div>
+        <div class="cb-body">
+          <p>코드를 한 줄씩 타이핑하는 대신, AI에게 <strong style="color:var(--green-200)">"내가 원하는 것"을 자연어로 설명</strong>해서 코드를 얻는 방법이에요.</p>
+          <p>중요한 건 AI가 만든 코드를 <strong style="color:var(--green-200)">이해하고 수정할 수 있어야</strong> 한다는 거예요. 그냥 복붙만 하면 진짜 농부가 아니죠!</p>
+        </div>
+      </div>
+      <div class="mission-block">
+        <div class="mb-head"><span>✨</span><span class="mb-head-title">바이브코딩 실습 — 오른쪽 튜터에게 직접 요청해봐요</span></div>
+        <div class="mb-body">
+          <div class="mb-task">아래 예시처럼 오른쪽 허수아비 튜터에게 자연어로 코드를 요청해보세요!</div>
+          <div class="vibe-prompt">
+            <div class="vibe-label">💬 바이브코딩 프롬프트 예시</div>
+토양수분 값이 30% 이하로 떨어지면 자동으로 펌프를 켜고,
+70% 이상이 되면 멈추는 ESP32 코드를 만들어줘.
+펌프는 GPIO 26번 핀에 연결했어. 한국어 주석도 달아줘.</div>
+          <div class="mb-task" style="margin-top:12px">튜터가 코드를 만들어주면, 모르는 부분을 또 물어보세요!</div>
+          <button class="complete-btn" onclick="completeLesson(6)" id="btn-6">✅ 7차시 완료</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 잠금 화면 -->
+    <div class="lesson-view" id="lesson-locked">
+      <div style="padding:60px 32px;text-align:center;">
+        <div style="font-size:48px;margin-bottom:16px;">🔒</div>
+        <div style="font-family:'Black Han Sans',sans-serif;font-size:20px;color:var(--text);margin-bottom:8px;">이전 차시를 먼저 완료해야 열려요</div>
+        <div style="font-size:13px;color:var(--text-s);">차례차례 밭을 갈아야 씨앗을 심을 수 있어요 🌾</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI 튜터 패널 -->
+  <div class="tutor-panel">
+    <div class="tp-header">
+      <div class="tp-avatar">🧑‍🌾</div>
+      <div class="tp-info">
+        <div class="tp-name">AI 허수아비 튜터</div>
+        <div class="tp-status"><span class="tp-status-dot"></span>스마트 밭 전문 모드</div>
+      </div>
+    </div>
+    <div class="hint-level">
+      <span class="hl-label">힌트 단계</span>
+      <div class="hl-dot" id="hd-1"></div>
+      <div class="hl-dot" id="hd-2"></div>
+      <div class="hl-dot" id="hd-3"></div>
+      <div class="hl-dot" id="hd-4"></div>
+      <div class="hl-dot" id="hd-5"></div>
+    </div>
+    <div class="tp-messages" id="tp-messages">
+      <div class="msg bot">
+        <div class="msg-av bot-av">🧑‍🌾</div>
+        <div class="msg-bubble">안녕! 나는 스마트 밭 전담 허수아비 튜터야 🌾<br><br>ESP32, 센서 코딩, 바이브코딩 뭐든 물어봐! 막히면 단계별 힌트도 줄게.<br><br>지금 몇 차시 하고 있어?</div>
+      </div>
+    </div>
+    <div class="quick-chips">
+      <span class="qc" onclick="sendQuick('ESP32가 뭐예요?')">ESP32가 뭐예요?</span>
+      <span class="qc" onclick="sendQuick('센서 연결이 안 돼요')">센서 연결 오류</span>
+      <span class="qc" onclick="sendQuick('바이브코딩 예시 보여줘')">바이브코딩 예시</span>
+      <span class="qc" onclick="sendQuick('토양수분 자동급수 코드 만들어줘')">자동급수 코드</span>
+    </div>
+    <div class="tp-input-area">
+      <input class="tp-input" id="tp-input" placeholder="질문 또는 코드 요청..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}" />
+      <button class="tp-send" id="tp-send-btn" onclick="sendMsg()">▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- 배지 모달 -->
+<div class="badge-overlay" id="badge-overlay">
+  <div class="badge-modal">
+    <div class="badge-icon">🏅</div>
+    <div class="badge-title" id="badge-title">C앗 밭갈기 완료!</div>
+    <div class="badge-desc" id="badge-desc">씨뿌리기 단계가 열렸어요!</div>
+    <button class="badge-close" onclick="closeBadge()">계속하기 🌱</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── 설정 ─────────────────────────────────────────────────
+// 배포 후 Render 서버 주소로 교체하세요
+const SERVER_URL = 'https://caat-platform-api.onrender.com';
+// 로컬 테스트 시: const SERVER_URL = 'http://localhost:3001';
+
+// ── 상태 ─────────────────────────────────────────────────
+const state = {
+  completed: new Set(),
+  currentLesson: 0,
+  isLoading: false,
+  conversationHistory: [],
+};
+
+// 차시별 컨텍스트 (서버에 함께 전달 → 시스템 프롬프트에 주입됨)
+const LESSON_CONTEXTS = {
+  0: { lessonId:1, lessonTitle:'스마트팜이란?', stage:'밭갈기', objective:'SDGs와 스마트팜 개념 이해' },
+  1: { lessonId:2, lessonTitle:'ESP32 첫 연결', stage:'밭갈기', objective:'Arduino IDE 셋업 및 LED 제어' },
+  2: { lessonId:3, lessonTitle:'센서 데이터 읽기', stage:'밭갈기', objective:'DHT22·토양수분 센서 코드 작성' },
+  6: { lessonId:7, lessonTitle:'바이브코딩 입문', stage:'가꾸기', objective:'자연어로 AI에게 ESP32 코드 요청하기' },
+};
+
+// ── 서버 상태 확인 ────────────────────────────────────────
+async function checkServer() {
+  try {
+    const res = await fetch(SERVER_URL + '/', { signal: AbortSignal.timeout(5000) });
+    if (res.ok) {
+      document.getElementById('ss-dot').className = 'ss-dot online';
+      document.getElementById('ss-label').textContent = '서버 연결됨';
+      fetchSensors();
+      setInterval(fetchSensors, 4000);
+      return true;
+    }
+  } catch {}
+  document.getElementById('ss-dot').className = 'ss-dot error';
+  document.getElementById('ss-label').textContent = '서버 오프라인';
+  loadFallbackSensors();
+  return false;
+}
+
+// ── 센서 데이터 (서버에서 가져오기) ──────────────────────
+async function fetchSensors() {
+  try {
+    const res = await fetch(SERVER_URL + '/api/sensors', { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) return;
+    const json = await res.json();
+    const d = json.data;
+    updateSensor('temp',  d.temperature.toFixed(1), d.temperature / 50 * 100, '°C');
+    updateSensor('hum',   d.humidity,               d.humidity,               '%');
+    updateSensor('soil',  d.soilMoisture,            d.soilMoisture,           '%');
+    updateSensor('light', d.light,                   d.light / 6000 * 100,    'lux');
+  } catch { loadFallbackSensors(); }
+}
+
+function updateSensor(id, val, pct, unit) {
+  document.getElementById('s-'+id).innerHTML = val + '<span class="sc-unit">' + unit + '</span>';
+  document.getElementById('sb-'+id).style.width = Math.min(100, Math.round(pct)) + '%';
+}
+
+function loadFallbackSensors() {
+  // 서버 없을 때 시뮬레이션
+  const base = { temp:24.3, hum:67, soil:42, light:3200 };
+  const n = (v, r) => +(v + (Math.random()-.5)*r).toFixed(1);
+  updateSensor('temp',  n(base.temp,.6),          base.temp/50*100, '°C');
+  updateSensor('hum',   Math.round(n(base.hum,3)), base.hum,        '%');
+  updateSensor('soil',  Math.round(n(base.soil,4)),base.soil,        '%');
+  updateSensor('light', Math.round(n(base.light,200)), base.light/6000*100,'lux');
+}
+
+// ── 차시 관리 ─────────────────────────────────────────────
+function openLesson(idx) {
+  if (document.getElementById('li-'+idx)?.classList.contains('locked')) return;
+  state.currentLesson = idx;
+  document.querySelectorAll('.lesson-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('li-'+idx)?.classList.add('active');
+  document.querySelectorAll('.lesson-view').forEach(el => el.classList.remove('active'));
+  const view = document.getElementById('lesson-'+idx) || document.getElementById('lesson-locked');
+  view.classList.add('active');
+  updatePhase(idx);
+}
+
+function updatePhase(idx) {
+  const phase = idx < 3 ? 0 : idx < 6 ? 1 : idx < 9 ? 2 : 3;
+  document.querySelectorAll('.pi-dot').forEach((d,i) => {
+    d.classList.toggle('done', i < phase);
+    d.classList.toggle('active', i === phase);
+  });
+}
+
+const UNLOCK = { 0:[1], 1:[2], 2:[3,4,5], 5:[6,7,8], 8:[9,10,11] };
+const BADGES  = {
+  2: { title:'🚜 C앗 밭갈기 완료!', desc:'씨뿌리기 단계(4~6차시)가 열렸어요!' },
+  5: { title:'🌱 씨앗 심기 완료!',   desc:'가꾸기 단계(7~9차시)가 열렸어요!' },
+  8: { title:'🌿 가꾸기 완료!',       desc:'수확하기 단계(10~12차시)가 열렸어요!' },
+  11:{ title:'🌾 C앗 스마트팜 사이언티스트!', desc:'모든 과정을 완료했어요! 배지가 발급됩니다.' },
+};
+
+function completeLesson(idx) {
+  state.completed.add(idx);
+  const btn = document.getElementById('btn-'+idx);
+  if (btn) { btn.classList.add('done'); btn.textContent = '✓ 완료'; btn.onclick = null; }
+  const li = document.getElementById('li-'+idx);
+  if (li) { li.classList.add('completed'); li.querySelector('.li-status').textContent = '✓'; }
+  (UNLOCK[idx] || []).forEach(u => {
+    const uLi = document.getElementById('li-'+u);
+    if (uLi) { uLi.classList.remove('locked'); uLi.onclick = () => openLesson(u); uLi.querySelector('.li-status').textContent = '📖'; }
+  });
+  document.getElementById('prog-text').textContent = state.completed.size + ' / 12 차시';
+  document.getElementById('prog-fill').style.width = Math.round(state.completed.size/12*100) + '%';
+  if (BADGES[idx]) showBadge(BADGES[idx]);
+  const next = (UNLOCK[idx] || [])[0];
+  if (next !== undefined) setTimeout(() => openLesson(next), 800);
+}
+
+function showBadge({ title, desc }) {
+  document.getElementById('badge-title').textContent = title;
+  document.getElementById('badge-desc').textContent = desc;
+  document.getElementById('badge-overlay').classList.add('show');
+}
+function closeBadge() { document.getElementById('badge-overlay').classList.remove('show'); }
+
+// ── 퀴즈 ─────────────────────────────────────────────────
+function checkQuiz(el, qid, correct) {
+  const c = document.getElementById(qid);
+  if (c.querySelector('.correct,.wrong')) return;
+  c.querySelectorAll('.quiz-opt').forEach(o => o.style.pointerEvents = 'none');
+  el.classList.add(correct ? 'correct' : 'wrong');
+  if (!correct) c.querySelectorAll('.quiz-opt')[1].classList.add('correct');
+  const fb = document.getElementById('qf-'+qid);
+  fb.className = 'quiz-feedback ' + (correct ? 'correct' : 'wrong');
+  fb.textContent = correct
+    ? '🌾 정답! 토양수분이 낮으면 펌프를 작동시켜 물을 줘야 해. 이 로직을 코드로 직접 구현해볼 거야!'
+    : '🌱 아쉽지만 틀렸어! 정답은 B. 토양수분 부족 → 물 주기가 맞아. 한 번 더 생각해봐!';
+}
+
+// ── AI 튜터 채팅 ──────────────────────────────────────────
+function sendQuick(text) { document.getElementById('tp-input').value = text; sendMsg(); }
+
+async function sendMsg() {
+  if (state.isLoading) return;
+  const input = document.getElementById('tp-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  state.isLoading = true;
+  document.getElementById('tp-send-btn').disabled = true;
+
+  addMsg(text, 'user');
+  state.conversationHistory.push({ role:'user', content:text });
+
+  showTyping();
+
+  try {
+    const res = await fetch(SERVER_URL + '/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: state.conversationHistory,
+        lessonContext: LESSON_CONTEXTS[state.currentLesson] || null,
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+
+    removeTyping();
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showToast('오류: ' + (err.error || res.status));
+      return;
+    }
+
+    const data = await res.json();
+    const reply = data.reply || '';
+    state.conversationHistory.push({ role:'assistant', content:reply });
+    addMsg(reply, 'bot');
+    updateHintDots(reply);
+
+  } catch (e) {
+    removeTyping();
+    if (e.name === 'TimeoutError') showToast('응답 시간 초과. 다시 시도해봐요!');
+    else showToast('서버 연결 실패. 서버가 실행 중인지 확인해주세요.');
+  } finally {
+    state.isLoading = false;
+    document.getElementById('tp-send-btn').disabled = false;
+  }
+}
+
+function addMsg(text, type) {
+  const box = document.getElementById('tp-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + type;
+
+  const hm = text.match(/\[힌트(\d)\]/);
+  let body = text.replace(/\[힌트\d\]\s*/g, '');
+
+  // 코드블록 렌더링
+  body = body.replace(/```[\w]*\n?([\s\S]*?)```/g, (_, code) =>
+    `<div style="background:#0d1a08;border:1px solid rgba(99,153,34,.3);border-radius:6px;padding:10px;font-family:'Nanum Gothic Coding',monospace;font-size:11px;color:#a8d08d;margin:6px 0;white-space:pre-wrap;overflow-x:auto;">${code.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`);
+  body = body.replace(/\n/g, '<br>');
+
+  let badge = '';
+  if (hm && type === 'bot') {
+    const n = hm[1];
+    const labels = ['','방향 힌트','개념 비유','구조 힌트','부분 코드','전체 풀이'];
+    badge = `<div class="hint-badge hb-${n}">힌트 ${n}단계 · ${labels[n]}</div>`;
+  }
+
+  div.innerHTML = `<div class="msg-av ${type==='bot'?'bot-av':'user-av'}">${type==='bot'?'🧑‍🌾':'🧒'}</div><div class="msg-bubble">${badge}${body}</div>`;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function showTyping() {
+  const box = document.getElementById('tp-messages');
+  const div = document.createElement('div');
+  div.className = 'msg bot'; div.id = 'typing-ind';
+  div.innerHTML = `<div class="msg-av bot-av">🧑‍🌾</div><div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  box.appendChild(div); box.scrollTop = box.scrollHeight;
+}
+function removeTyping() { document.getElementById('typing-ind')?.remove(); }
+
+function updateHintDots(reply) {
+  const m = reply.match(/\[힌트(\d)\]/);
+  if (!m) return;
+  const n = parseInt(m[1]);
+  const colors = ['','h1','h2','h3','h4','h5'];
+  for (let i = 1; i <= 5; i++) {
+    document.getElementById('hd-'+i).className = 'hl-dot' + (i <= n ? ' '+colors[i] : '');
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ── 초기화 ────────────────────────────────────────────────
+checkServer();
+</script>
+</body>
+</html>
